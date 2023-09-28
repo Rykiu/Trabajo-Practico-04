@@ -1,0 +1,44 @@
+# Ejercicio 1
+GET http://localhost:1234/usuarios
+
+# Ejercicio 2
+GET http://localhost:1234/usuarios/10
+
+# Ejercicio 3
+
+POST http://localhost:1234/usuarios
+Content-Type: application/json
+
+{
+    "id": 11,
+    "nombre": "Ramiro Alzogaray",
+    "edad": 33,
+    "email": "riagrayfox@gmail.com",
+    "telefono": "+54 93815988120"
+}
+
+# Ejercicio 4
+PATCH http://localhost:1234/usuarios/2
+Content-Type: application/json
+
+{
+    "nombre": "Fernando Alonso"
+}
+
+# Ejercicio 5
+DELETE http://localhost:1234/usuarios/8
+
+# Ejercicio 6
+GET http://localhost:1234/productos/precio/2
+
+# Ejercicio 7
+GET http://localhost:1234/productos/nombre/6
+
+#Ejercicio 8
+GET http://localhost:1234/usuarios/telefono/10
+
+#Ejercicio 9
+GET http://localhost:1234/usuarios/nombre/4
+
+#Ejercicio 10
+GET http://localhost:1234/productos/stock
