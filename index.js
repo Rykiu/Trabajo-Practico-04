@@ -145,8 +145,9 @@ app.get('/productos/stock', async (req, res) => {
   try {
     let sumaPrecios = 0
     let stock = 0
-    await Producto.forEach(function (producto) {
-      sumaPrecios += Producto.precio
+    const allProductos = await Producto.findAll()
+    allProductos.forEach(function (producto) {
+      sumaPrecios += producto.precio
       stock++
     })
     sumaPrecios = sumaPrecios.toFixed(2)
