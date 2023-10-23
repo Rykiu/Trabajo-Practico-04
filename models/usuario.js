@@ -2,6 +2,11 @@ import { DataTypes } from 'sequelize'
 import db from '../db/connection.js'
 
 const Usuario = db.define('Usuario', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   dni: {
     type: DataTypes.STRING
   },
@@ -16,6 +21,15 @@ const Usuario = db.define('Usuario', {
   },
   telefono: {
     type: DataTypes.STRING
+  },
+  usuario: {
+    type: DataTypes.STRING
+  },
+  password: {
+    type: DataTypes.STRING
+  },
+  nivel: {
+    type: DataTypes.INTEGER
   }
 },
 {

@@ -1,43 +1,8 @@
-# #Ejercicio 1
-# GET http://localhost:1234/usuarios/
+POST http://localhost:1234/auth
 
-# #Ejercicio 2
-# GET http://localhost:1234/usuarios/2
+Content-Type: application/json
 
-# #Ejercicio 3
-# POST http://localhost:1234/usuarios
-# Content-Type: application/json
-
-# {
-#   "dni": "12345678",
-#   "nombres": "Nombres de prueba",
-#   "apellidos": "apellidos de prueba",
-#   "email": "emaildeprueba@gmail.com",
-#   "telefono": "12345678"
-# }
-
-# #Ejercico 4
-# PATCH http://localhost:1234/usuarios/6
-# Content-Type: application/json
-
-# {
-#     "nombres": "Fernando Alonso"
-# }
-
-# #Ejercicio 5
-#DELETE http://localhost:1234/usuarios/6
-
-# #Ejercicio 6
-#GET http://localhost:1234/productos/precio/2
-
-# #Ejercicio 7
-#GET http://localhost:1234/productos/nombre/2
-
-# # Ejercicio 8
-#GET http://localhost:1234/usuarios/telefono/1
-
-# #Ejercicio 9
-#GET http://localhost:1234/usuarios/
-
-# #Ejercicio 10
-GET http://localhost:1234/productos/stock
+{
+    "usuario": "user1",
+    "password": "psw1"
+}

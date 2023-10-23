@@ -42,57 +42,26 @@ app.get('/', (req, res) => {
   res.status(200).send(html)
 })
 
-// Middleware que construye el body en req de tipo post y patch
-app.use((req, res, next) => {
-  if ((req.method !== 'POST') && (req.method !== 'PATCH')) { return next() }
-
-  if (req.headers['content-type'] !== 'application/json') { return next() }
-
-  let bodyTemporal = ''
-
-  req.on('data', (chunk) => {
-    bodyTemporal += chunk.toString()
-  })
-
-  req.on('end', () => {
-    req.body = JSON.parse(bodyTemporal)
-
-    next()
-  })
-})
-
-app.get('/', (req, res) => {
-  res.status(200).send(html)
-})
-
-// Endpoint para la validacion de los datos de logueo
-app.post('/auth', async (req, res) => {
-  // obtencion datos de logueo
-  const usuarioABuscar = req.body.usuario
-  const passwordRecibido = req.body.password
+app.post('/auth', async function (request, response) {
+  const usuarioABuscar = request.body.usuario
+  const passwordRecibido = request.body.password
 
   let usuarioEncontrado = ''
-  console.log(usuarioABuscar)
-  // Comprobacion del usuario
+  console.log(passwordRecibido)
   try {
     usuarioEncontrado = await Usuario.findAll({ where: { usuario: usuarioABuscar } })
-
-    if (usuarioEncontrado === '') { return res.status(400).json({ message: 'Usuario no encontrado' }) }
+    if (usuarioEncontrado === '') { return response.status(400).json({ message: 'Usuario no encontrado' }) }
+    if (usuarioEncontrado[0].password !== passwordRecibido) {
+      return response.status(400).json({ message: 'Password incorrecto' })
+    }
   } catch (error) {
-    return res.status(400).json({ message: 'Usuario no encontrado' })
+    return response.status(400).json({ message: 'Usuario no encontrado' })
   }
 
-  // Comprobacion del password
-  if (usuarioEncontrado[0].password !== passwordRecibido) {
-    return res.status(400).json({ message: 'Password incorrecto' })
-  }
-
-  // Generacion del token
   const sub = usuarioEncontrado[0].id
   const usuario = usuarioEncontrado[0].usuario
   const nivel = usuarioEncontrado[0].nivel
 
-  // firma y construccion del token
   const token = jwt.sign({
     sub,
     usuario,
@@ -100,7 +69,7 @@ app.post('/auth', async (req, res) => {
     exp: Date.now() + (60 * 1000)
   }, process.env.SECRET_KEY)
 
-  res.status(200).json({ accessToken: token })
+  response.status(200).json({ accessToken: token })
 })
 
 app.get('/productos/', async (req, res) => {
