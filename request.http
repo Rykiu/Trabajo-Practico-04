@@ -1,8 +1,13 @@
 POST http://localhost:1234/auth
-
 Content-Type: application/json
 
 {
     "usuario": "user1",
     "password": "psw1"
 }
+
+###
+GET http://localhost:1234/productos
+
+###
+GET http://localhost:1234/usuarios

@@ -10,7 +10,7 @@ const app = express()
 
 const exposedPort = 1234
 
-app.use(express.json())
+// app.use(express.json())
 
 function autenticacionDeToken (req, res, next) {
   const headerAuthorization = req.headers[' authorization ']
@@ -43,23 +43,22 @@ app.get('/', (req, res) => {
 })
 
 // Middleware que construye el body en req de tipo post y patch
-app.use((req, res, next) => {
-  if ((req.method !== 'POST') && (req.method !== 'PATCH')) { return next() }
+app.use((req, res, next) =>{
+  if ((req.method !== 'POST') && (req.method !== 'PATCH')) { return next()}
 
-  if (req.headers['content-type'] !== 'application/json') { return next() }
+  if (req.headers['content-type'] !== 'application/json') { return next()}
 
   let bodyTemporal = ''
 
   req.on('data', (chunk) => {
-    bodyTemporal += chunk.toString()
+      bodyTemporal += chunk.toString()
   })
 
   req.on('end', () => {
-    req.body = JSON.parse(bodyTemporal)
+      req.body = JSON.parse(bodyTemporal)
 
-    next()
-  })
-})
+      next()
+})})
 
 app.get('/', (req, res) => {
   res.status(200).send(html)
@@ -72,7 +71,6 @@ app.post('/auth', async (req, res) => {
   const passwordRecibido = req.body.password
 
   let usuarioEncontrado = ''
-  console.log(usuarioABuscar)
   // Comprobacion del usuario
   try {
     usuarioEncontrado = await Usuario.findAll({ where: { usuario: usuarioABuscar } })
@@ -158,6 +156,16 @@ app.delete('/productos/:id', async (req, res) => {
 
     await productoABorrar.destroy()
     res.status(200).json({ message: 'Producto borrado' })
+  } catch (error) {
+    res.status(204).json({ message: error })
+  }
+})
+
+//Endpoint to get all users
+app.get('/usuarios/', async (req, res) => {
+  try {
+    const allUsers = await Usuario.findAll()
+    res.status(200).json(allUsers)
   } catch (error) {
     res.status(204).json({ message: error })
   }
