@@ -4,7 +4,7 @@ import db from './db/connection.js'
 import Producto from './models/producto.js'
 import Usuario from './models/usuario.js'
 
-const html = '<h1>Bienvenido a la API</h1><p>Los comandos disponibles son:</p><ul><li>GET: /productos/</li><li>GET: /productos/id</li>    <li>POST: /productos/</li>    <li>DELETE: /productos/id</li>    <li>PUT: /productos/id</li>    <li>PATCH: /productos/id</li>    <li>GET: /usuarios/</li>    <li>GET: /usuarios/id</li>    <li>POST: /usuarios/</li>    <li>DELETE: /usuarios/id</li>    <li>PUT: /usuarios/id</li>    <li>PATCH: /usuarios/id</li></ul>'
+const html = '<h1>Bienvenido a la API</h1>'
 
 const app = express()
 
@@ -12,10 +12,8 @@ const exposedPort = 1234
 
 app.use(express.json())
 
-function autenticacionDeToken (req, res, next) {
-  const headerAuthorization = req.headers[' authorization ']
-
-  const tokenRecibido = headerAuthorization.split(' ')[1]
+function authenticateToken (req, res, next) {
+  const tokenRecibido = req.headers.authorization.split(' ')[1]
 
   if (tokenRecibido == null) {
     return res.status(401).json({ message: 'Token inválido' })
@@ -42,129 +40,172 @@ app.get('/', (req, res) => {
   res.status(200).send(html)
 })
 
-// Middleware que construye el body en req de tipo post y patch
-app.use((req, res, next) => {
-  if ((req.method !== 'POST') && (req.method !== 'PATCH')) { return next() }
-
-  if (req.headers['content-type'] !== 'application/json') { return next() }
-
-  let bodyTemporal = ''
-
-  req.on('data', (chunk) => {
-    bodyTemporal += chunk.toString()
-  })
-
-  req.on('end', () => {
-    req.body = JSON.parse(bodyTemporal)
-
-    next()
-  })
-})
-
-app.get('/', (req, res) => {
-  res.status(200).send(html)
-})
-
-// Endpoint para la validacion de los datos de logueo
-app.post('/auth', async (req, res) => {
-  // obtencion datos de logueo
-  const usuarioABuscar = req.body.usuario
-  const passwordRecibido = req.body.password
+app.post('/auth', async function (request, response) {
+  const usuarioABuscar = request.body.usuario
+  const passwordRecibido = request.body.password
 
   let usuarioEncontrado = ''
-  console.log(usuarioABuscar)
-  // Comprobacion del usuario
   try {
     usuarioEncontrado = await Usuario.findAll({ where: { usuario: usuarioABuscar } })
-
-    if (usuarioEncontrado === '') { return res.status(400).json({ message: 'Usuario no encontrado' }) }
+    if (usuarioEncontrado === '') { return response.status(400).json({ message: 'Usuario no encontrado' }) }
+    if (usuarioEncontrado[0].password !== passwordRecibido) {
+      return response.status(400).json({ message: 'Password incorrecto' })
+    }
   } catch (error) {
-    return res.status(400).json({ message: 'Usuario no encontrado' })
+    return response.status(400).json({ message: 'Usuario no encontrado' })
   }
 
-  // Comprobacion del password
-  if (usuarioEncontrado[0].password !== passwordRecibido) {
-    return res.status(400).json({ message: 'Password incorrecto' })
-  }
-
-  // Generacion del token
   const sub = usuarioEncontrado[0].id
   const usuario = usuarioEncontrado[0].usuario
   const nivel = usuarioEncontrado[0].nivel
 
-  // firma y construccion del token
   const token = jwt.sign({
     sub,
     usuario,
     nivel,
-    exp: Date.now() + (60 * 1000)
+    exp: Date.now() + (60 * 10000)
   }, process.env.SECRET_KEY)
 
-  res.status(200).json({ accessToken: token })
+  response.status(200).json({ accessToken: token })
 })
 
-app.get('/productos/', async (req, res) => {
+app.get('/usuarios/', async (req, res) => {
   try {
-    const allProducts = await Producto.findAll()
-    res.status(200).json(allProducts)
+    const allUsuarios = await Usuario.findAll()
+    res.status(200).json(allUsuarios)
   } catch (error) {
     res.status(204).json({ message: error })
   }
 })
 
-app.get('/productos/:id', async (req, res) => {
+app.get('/usuarios/:id', async (req, res) => {
+  try {
+    const usuarioId = parseInt(req.params.id)
+    const usuarioEncontrado = await Usuario.findByPk(usuarioId)
+    res.status(200).json(usuarioEncontrado)
+  } catch (error) {
+    res.status(204).json({ message: error })
+  }
+})
+
+app.post('/usuarios', authenticateToken, async (req, res) => {
+  const { dni, nombres, apellidos, email, telefono, usuario, password, nivel } = req.body
+
+  try {
+    const nuevoUsuario = await Usuario.create({
+      dni,
+      nombres,
+      apellidos,
+      email,
+      telefono,
+      usuario,
+      password,
+      nivel
+    })
+    res.status(201).json(nuevoUsuario)
+  } catch (error) {
+    res.status(500).json({ error: 'No se pudo crear el Usuario' })
+  }
+})
+
+app.patch('/usuarios/:id', authenticateToken, async (req, res) => {
+  const datos = req.body
+  const usuarioId = req.params.id
+
+  try {
+    // Verificar si el producto existe
+    const usuarioAModificar = await Usuario.findByPk(usuarioId)
+    if (!usuarioAModificar) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    // Actualizar los campos del producto
+    usuarioAModificar.dni = datos.dni || usuarioAModificar.dni
+    usuarioAModificar.nombres = datos.nombres || usuarioAModificar.nombres
+    usuarioAModificar.apellidos = datos.apellidos || usuarioAModificar.apellidos
+    usuarioAModificar.email = datos.email || usuarioAModificar.email
+    usuarioAModificar.telefono = datos.telefono || usuarioAModificar.telefono
+    usuarioAModificar.usuario = datos.usuario || usuarioAModificar.usuario
+    usuarioAModificar.password = datos.password || usuarioAModificar.password
+    usuarioAModificar.nivel = datos.nivel || usuarioAModificar.nivel
+
+    // Guardar los cambios en la base de datos
+    await usuarioAModificar.save()
+
+    res.json(usuarioAModificar)
+  } catch (error) {
+    res.status(500).json({ error: 'No se pudo actualizar el producto' })
+  }
+})
+
+app.delete('/usuarios/:id', authenticateToken, async (req, res) => {
+  const idUsuarioBorrar = parseInt(req.params.id)
+  try {
+    const usuarioBorrar = await Usuario.findByPk(idUsuarioBorrar)
+    if (!usuarioBorrar) {
+      return res.status(204).json({ message: 'Usuario no encontrado' })
+    }
+    await usuarioBorrar.destroy()
+    res.status(200).json({ message: 'Usuario borrado' })
+  } catch (error) {
+    res.status(240).json({ Message: 'error' })
+  }
+})
+
+app.get('/productos/precio/:id', async (req, res) => {
   try {
     const productoId = parseInt(req.params.id)
     const productoEncontrado = await Producto.findByPk(productoId)
+    res.status(200).json(productoEncontrado.precio)
+  } catch (error) {
+    res.status(204).json({ message: 'error' })
+  }
+})
 
-    res.status(200).json(productoEncontrado)
+app.get('/productos/nombre/:id', async (req, res) => {
+  try {
+    const productoId = parseInt(req.params.id)
+    const productoEncontrado = await Producto.findByPk(productoId)
+    res.status(200).json(productoEncontrado.nombre)
+  } catch (error) {
+    res.status(204).json({ message: 'error' })
+  }
+})
+
+app.get('/usuarios/telefono/:id', async (req, res) => {
+  try {
+    const usuarioId = parseInt(req.params.id)
+    const usuarioEncontrado = await Usuario.findByPk(usuarioId)
+    res.status(200).json(usuarioEncontrado.telefono)
   } catch (error) {
     res.status(204).json({ message: error })
   }
 })
 
-app.post('/productos', autenticacionDeToken, async (req, res) => {
+app.get('/usuarios/nombre/:id', async (req, res) => {
   try {
-    const productoAGuardar = new Producto(req.body)
-    await productoAGuardar.save()
-    res.status(201).json({ message: 'success' })
+    const usuarioId = parseInt(req.params.id)
+    const usuarioEncontrado = await Usuario.findByPk(usuarioId)
+    res.status(200).json(usuarioEncontrado.nombres)
   } catch (error) {
     res.status(204).json({ message: error })
   }
 })
 
-app.patch('/productos/:id', async (req, res) => {
-  const idProductoAEditar = parseInt(req.params.id)
+app.get('/productos/stock', async (req, res) => {
   try {
-    const productoAActualizar = await Producto.findByPk(idProductoAEditar)
-
-    if (!productoAActualizar) {
-      return res.status(204).json({ message: 'Producto no encontrado' })
-    }
-    await productoAActualizar.update(req.body)
-    res.status(200).send('Producto actualizado')
+    let sumaPrecios = 0
+    let stock = 0
+    const allProductos = await Producto.findAll()
+    allProductos.forEach(function (producto) {
+      sumaPrecios += producto.precio
+      stock++
+    })
+    sumaPrecios = sumaPrecios.toFixed(2)
+    res.status(200).send('Stock total de productos: ' + stock + '\nSuma de precios: ' + sumaPrecios)
   } catch (error) {
-    res.status(204).json({ message: 'Producto no encontrado' })
+    res.status(204).json({ message: 'error' })
   }
-})
-
-app.delete('/productos/:id', async (req, res) => {
-  const idProductoABorrar = parseInt(req.params.id)
-  try {
-    const productoABorrar = await Producto.findByPk(idProductoABorrar)
-    if (!productoABorrar) {
-      return res.status(204).json({ message: 'Producto no encontrado' })
-    }
-
-    await productoABorrar.destroy()
-    res.status(200).json({ message: 'Producto borrado' })
-  } catch (error) {
-    res.status(204).json({ message: error })
-  }
-})
-
-app.use((req, res) => {
-  res.status(404).send('<h1>404</h1>')
 })
 
 try {
